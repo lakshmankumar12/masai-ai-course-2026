@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lakshman-First-AI-Agent</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 640px;
+      width: 100%;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+      color: #e94560;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.85rem;
+      margin-bottom: 36px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 16px;
+    }
+
+    input[type="text"]::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    input[type="text"]:focus {
+      border-color: #53d8fb;
+      background: rgba(83, 216, 251, 0.07);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(90deg, #e94560, #c0392b);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #result-container {
+      margin-top: 28px;
+      min-height: 0;
+    }
+
+    .result-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(83, 216, 251, 0.25);
+      border-radius: 12px;
+      padding: 20px 22px;
+      line-height: 1.7;
+      font-size: 0.97rem;
+      color: #d0eeff;
+      white-space: pre-wrap;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .error-box {
+      background: rgba(233, 69, 96, 0.1);
+      border-color: rgba(233, 69, 96, 0.4);
+      color: #f5a0b0;
+      font-weight: 600;
+    }
+
+    .error-detail-box {
+      margin-top: 8px;
+      background: rgba(233, 69, 96, 0.05);
+      border-color: rgba(233, 69, 96, 0.2);
+      color: #c9788a;
+      font-size: 0.88rem;
+      font-family: monospace;
+    }
+
+    .spinner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+      padding: 12px 0;
+    }
+
+    .spinner::before {
+      content: '';
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #53d8fb;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Lakshman-First-AI-Agent</h1>
+    <p class="subtitle">Powered by Gemini &bull; Explains things like you're five</p>
+
+    <label for="topic-input">Topic to explain</label>
+    <input
+      type="text"
+      id="topic-input"
+      placeholder="e.g. black holes, quantum entanglement…"
+    />
+
+    <button id="submit-btn" onclick="handleSubmit()">Explain it!</button>
+
+    <div id="result-container"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=';
+    const LS_KEY = 'gemini_api_key';
+
+    function getStoredKey() {
+      return localStorage.getItem(LS_KEY);
+    }
+
+    function promptForKey() {
+      const key = window.prompt(
+        'Enter your Gemini API key.\n(It will be saved only in your browser\'s local storage.)'
+      );
+      if (key && key.trim()) {
+        localStorage.setItem(LS_KEY, key.trim());
+        return key.trim();
+      }
+      return null;
+    }
+
+    function showLoading() {
+      const container = document.getElementById('result-container');
+      container.innerHTML = '<div class="spinner">Thinking…</div>';
+    }
+
+    function showResult(text) {
+      const container = document.getElementById('result-container');
+      container.innerHTML = `<div class="result-box">${escapeHtml(text)}</div>`;
+    }
+
+    function showError(summary, detail) {
+      const container = document.getElementById('result-container');
+      const detailHtml = detail
+        ? `<div class="result-box error-detail-box">${escapeHtml(detail)}</div>`
+        : '';
+      container.innerHTML = `<div class="result-box error-box">${escapeHtml(summary)}</div>${detailHtml}`;
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function callGemini(key, prompt) {
+      const response = await fetch(API_URL + key, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+      return response;
+    }
+
+    async function handleSubmit() {
+      const topic = document.getElementById('topic-input').value.trim();
+      if (!topic) {
+        showError('Please enter a topic first.');
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      showLoading();
+
+      try {
+        let key = getStoredKey();
+
+        if (!key) {
+          key = promptForKey();
+          if (!key) {
+            showError('No API key provided. Please try again.', 'Tip: you can get a free key at https://aistudio.google.com');
+            btn.disabled = false;
+            return;
+          }
+        }
+
+        const prompt = `Please explain ${topic}, as if explaining to a five year old.`;
+
+        let response = await callGemini(key, prompt);
+
+        if (response.status === 400 || response.status === 403 || response.status === 404) {
+          localStorage.removeItem(LS_KEY);
+
+          let success = false;
+          while (!success) {
+            key = promptForKey();
+            if (!key) {
+              showError('No valid API key provided. Please try again.');
+              btn.disabled = false;
+              return;
+            }
+            response = await callGemini(key, prompt);
+            if (response.ok) {
+              success = true;
+            } else if (response.status !== 400 && response.status !== 403 && response.status !== 404) {
+              break;
+            } else {
+              localStorage.removeItem(LS_KEY);
+              window.alert('That key didn\'t work. Please try a different one.');
+            }
+          }
+        }
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const result = data.candidates[0].content.parts[0].text;
+        showResult(result);
+
+      } catch (err) {
+        showError('Something went wrong.', err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('topic-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSubmit();
+    });
+  </script>
+</body>
+</html>
